@@ -8,7 +8,6 @@ import { getPhoneLink, getWhatsAppLink } from '@/lib/site-config'
 export function CTASection() {
   return (
     <section className="py-20 bg-gold-gradient relative overflow-hidden">
-      {/* Background pattern */}
       <div
         className="absolute inset-0 opacity-10"
         style={{
@@ -16,7 +15,6 @@ export function CTASection() {
           backgroundSize: '32px 32px',
         }}
       />
-
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
           <motion.div
