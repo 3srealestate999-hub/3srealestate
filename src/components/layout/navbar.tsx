@@ -48,7 +48,7 @@ export function Navbar({ config }: NavbarProps) {
   const pathname = usePathname()
   const isHome = pathname === '/'
 
-  const phone = config?.phonePrimary || '+91 8872520002'
+  const phone = config?.phonePrimary || '+918872520002'
   const phoneLink = `tel:${phone.replace(/\s/g, '')}`
 
   useEffect(() => {
