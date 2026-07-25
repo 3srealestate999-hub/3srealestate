@@ -1,303 +1,157 @@
-'use client'
+import { prisma } from '@/lib/prisma'
+import { formatPriceINR, formatDateShort } from '@/lib/utils'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Plus, Edit, Eye } from 'lucide-react'
+import type { Metadata } from 'next'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { propertySchema, PropertyInput } from '@/lib/validations'
-import { Loader2, ArrowLeft } from 'lucide-react'
-import { ImageUploader } from '@/components/admin/image-uploader'
+export const metadata: Metadata = { title: 'Properties | 3S Admin' }
 
-export default function NewPropertyPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [coverImageUrl, setCoverImageUrl] = useState('')
-  const [amenities, setAmenities] = useState<string[]>([
-    'Swimming Pool', 'Gym', '24/7 Security', 'Parking', 'Power Backup',
+interface PageProps { searchParams: { status?: string; page?: string } }
+
+async function getProperties(params: PageProps['searchParams']) {
+  const page = parseInt(params.page || '1')
+  const limit = 15
+  const where: any = {}
+  if (params.status) where.status = params.status
+  const [properties, total] = await Promise.all([
+    prisma.property.findMany({
+      where, orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit, take: limit,
+      include: { _count: { select: { inquiries: true } } },
+    }),
+    prisma.property.count({ where }),
   ])
+  return { properties, total, page, pages: Math.ceil(total / limit) }
+}
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<PropertyInput>({
-    resolver: zodResolver(propertySchema),
-    defaultValues: {
-      status: 'AVAILABLE',
-      areaUnit: 'sqft',
-      isFeatured: false,
-      isLuxury: false,
-    },
-  })
+const statusColors: Record<string, string> = {
+  AVAILABLE: 'bg-green-500/10 text-green-400',
+  SOLD: 'bg-red-500/10 text-red-400',
+  UNDER_NEGOTIATION: 'bg-orange-500/10 text-orange-400',
+  COMING_SOON: 'bg-blue-500/10 text-blue-400',
+}
 
-  const onSubmit = async (data: PropertyInput) => {
-    if (!coverImageUrl) {
-      setError('Please upload a cover image')
-      return
-    }
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch('/api/admin/properties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          coverImage: coverImageUrl,
-          amenities: amenities.map((name) => ({ name })),
-        }),
-      })
-      const json = await res.json()
-      if (res.ok) {
-        router.push('/admin/properties')
-      } else {
-        setError(json.error || 'Failed to create property')
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const inputCls = 'w-full bg-charcoal-800 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-gold-500 transition-colors'
-  const labelCls = 'block text-white/60 text-xs mb-1.5 font-medium uppercase tracking-wide'
+export default async function AdminPropertiesPage({ searchParams }: PageProps) {
+  const { properties, total, page, pages } = await getProperties(searchParams)
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-white/40 hover:text-white transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-white">Add New Property</h1>
-          <p className="text-white/40 text-sm">Fill in all required fields</p>
+          <h1 className="text-2xl font-heading font-bold text-white">Properties</h1>
+          <p className="text-white/40 text-sm mt-1">{total} listings</p>
         </div>
+        <Link
+          href="/admin/properties/new"
+          className="flex items-center gap-2 bg-gold-gradient text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-gold hover:shadow-gold-lg transition-all"
+        >
+          <Plus className="w-4 h-4" /> Add Property
+        </Link>
       </div>
 
-      {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-          {error}
+      {/* Filters */}
+      <div className="flex gap-2 bg-charcoal-900 border border-white/10 rounded-xl p-3">
+        {['', 'AVAILABLE', 'SOLD', 'UNDER_NEGOTIATION', 'COMING_SOON'].map((s) => (
+          <Link
+            key={s}
+            href={`/admin/properties${s ? `?status=${s}` : ''}`}
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
+              (searchParams.status === s) || (!searchParams.status && !s)
+                ? 'bg-white/10 text-white'
+                : 'text-white/40 hover:text-white'
+            }`}
+          >
+            {s || 'All'}
+          </Link>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {properties.length === 0 ? (
+          <div className="col-span-3 text-center py-20 text-white/30">
+            No properties found. <Link href="/admin/properties/new" className="text-gold-400 hover:text-gold-300">Add one →</Link>
+          </div>
+        ) : (
+          properties.map((p) => (
+            <div key={p.id} className="bg-charcoal-900 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-colors">
+              <div className="relative h-40">
+                <Image
+                  src={p.coverImage}
+                  alt={p.title}
+                  fill
+                  className="object-cover"
+                  sizes="400px"
+                  unoptimized
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute top-2 left-2 flex gap-1.5">
+                  {p.isFeatured && (
+                    <span className="bg-gold-gradient text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      FEATURED
+                    </span>
+                  )}
+                  {p.isLuxury && (
+                    <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      LUXURY
+                    </span>
+                  )}
+                </div>
+                <div className="absolute bottom-2 right-2">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColors[p.status] || 'bg-gray-500/10 text-gray-400'}`}>
+                    {p.status.replace('_', ' ')}
+                  </span>
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="text-white font-semibold text-sm line-clamp-1 mb-1">{p.title}</h3>
+                <p className="text-white/40 text-xs mb-2">{p.locality}, {p.city}</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gold-400 font-bold text-sm">
+                    {p.priceLabel || formatPriceINR(p.price)}
+                  </p>
+                  <p className="text-white/30 text-xs">{p._count.inquiries} inquiries</p>
+                </div>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/property/${p.slug}`}
+                    target="_blank"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-lg text-xs transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View
+                  </Link>
+                  <Link
+                    href={`/admin/properties/${p.id}/edit`}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 rounded-lg text-xs transition-colors"
+                  >
+                    <Edit className="w-3.5 h-3.5" /> Edit
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      {pages > 1 && (
+        <div className="flex justify-center gap-2">
+          {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
+            <Link
+              key={p}
+              href={`/admin/properties?page=${p}`}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-medium ${
+                p === page
+                  ? 'bg-gold-gradient text-white'
+                  : 'bg-charcoal-900 text-white/50 hover:text-white border border-white/10'
+              }`}
+            >
+              {p}
+            </Link>
+          ))}
         </div>
       )}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
-        {/* Basic Info */}
-        <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
-          <h2 className="text-white font-semibold">Basic Information</h2>
-          <div>
-            <label className={labelCls}>Title *</label>
-            <input {...register('title')} placeholder="e.g. Luxury 3BHK Flat in Mohali Sector 70" className={inputCls} />
-            {errors.title && <p className="text-red-400 text-xs mt-1">{errors.title.message}</p>}
-          </div>
-          <div>
-            <label className={labelCls}>Description *</label>
-            <textarea {...register('description')} rows={5} placeholder="Detailed property description..." className={`${inputCls} resize-none`} />
-            {errors.description && <p className="text-red-400 text-xs mt-1">{errors.description.message}</p>}
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <label className={labelCls}>Property Type *</label>
-              <select {...register('type')} className={inputCls}>
-                {['FLAT', 'VILLA', 'PLOT', 'COMMERCIAL', 'LUXURY', 'RENTAL', 'AGRICULTURAL', 'RESIDENTIAL'].map((t) => (
-                  <option key={t} value={t} className="bg-charcoal-800">{t}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Purpose *</label>
-              <select {...register('purpose')} className={inputCls}>
-                <option value="SALE" className="bg-charcoal-800">For Sale</option>
-                <option value="RENT" className="bg-charcoal-800">For Rent</option>
-                <option value="INVESTMENT" className="bg-charcoal-800">Investment</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Status</label>
-              <select {...register('status')} className={inputCls}>
-                <option value="AVAILABLE" className="bg-charcoal-800">Available</option>
-                <option value="SOLD" className="bg-charcoal-800">Sold</option>
-                <option value="UNDER_NEGOTIATION" className="bg-charcoal-800">Under Negotiation</option>
-                <option value="COMING_SOON" className="bg-charcoal-800">Coming Soon</option>
-              </select>
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing & Area */}
-        <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
-          <h2 className="text-white font-semibold">Pricing & Area</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <label className={labelCls}>Price (₹) *</label>
-              <input {...register('price', { valueAsNumber: true })} type="number" placeholder="e.g. 8500000" className={inputCls} />
-              {errors.price && <p className="text-red-400 text-xs mt-1">{errors.price.message}</p>}
-            </div>
-            <div>
-              <label className={labelCls}>Price Label</label>
-              <input {...register('priceLabel')} placeholder="e.g. 85 Lac" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Area *</label>
-              <input {...register('area', { valueAsNumber: true })} type="number" placeholder="e.g. 1650" className={inputCls} />
-              {errors.area && <p className="text-red-400 text-xs mt-1">{errors.area.message}</p>}
-            </div>
-            <div>
-              <label className={labelCls}>Area Unit</label>
-              <select {...register('areaUnit')} className={inputCls}>
-                <option value="sqft" className="bg-charcoal-800">sq ft</option>
-                <option value="sqyd" className="bg-charcoal-800">sq yd</option>
-                <option value="sqm" className="bg-charcoal-800">sq m</option>
-                <option value="acre" className="bg-charcoal-800">acre</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Bedrooms</label>
-              <input {...register('bedrooms', { valueAsNumber: true })} type="number" placeholder="3" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Bathrooms</label>
-              <input {...register('bathrooms', { valueAsNumber: true })} type="number" placeholder="3" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Parking</label>
-              <input {...register('parking', { valueAsNumber: true })} type="number" placeholder="2" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Investment Return %</label>
-              <input {...register('investmentReturn', { valueAsNumber: true })} type="number" step="0.1" placeholder="12.5" className={inputCls} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <label className={labelCls}>Furnishing</label>
-              <select {...register('furnishing')} className={inputCls}>
-                <option value="" className="bg-charcoal-800">Select</option>
-                <option value="UNFURNISHED" className="bg-charcoal-800">Unfurnished</option>
-                <option value="SEMI_FURNISHED" className="bg-charcoal-800">Semi Furnished</option>
-                <option value="FULLY_FURNISHED" className="bg-charcoal-800">Fully Furnished</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Possession</label>
-              <select {...register('possession')} className={inputCls}>
-                <option value="" className="bg-charcoal-800">Select</option>
-                <option value="READY_TO_MOVE" className="bg-charcoal-800">Ready to Move</option>
-                <option value="UNDER_CONSTRUCTION" className="bg-charcoal-800">Under Construction</option>
-                <option value="NEW_LAUNCH" className="bg-charcoal-800">New Launch</option>
-              </select>
-            </div>
-          </div>
-        </section>
-
-        {/* Location */}
-        <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
-          <h2 className="text-white font-semibold">Location</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>City *</label>
-              <input {...register('city')} placeholder="Mohali" className={inputCls} />
-              {errors.city && <p className="text-red-400 text-xs mt-1">{errors.city.message}</p>}
-            </div>
-            <div>
-              <label className={labelCls}>Locality *</label>
-              <input {...register('locality')} placeholder="Sector 70" className={inputCls} />
-              {errors.locality && <p className="text-red-400 text-xs mt-1">{errors.locality.message}</p>}
-            </div>
-          </div>
-          <div>
-            <label className={labelCls}>Full Address *</label>
-            <input {...register('address')} placeholder="Full address with pincode" className={inputCls} />
-            {errors.address && <p className="text-red-400 text-xs mt-1">{errors.address.message}</p>}
-          </div>
-          <div>
-            <label className={labelCls}>Builder Name</label>
-            <input {...register('builderName')} placeholder="DLF, Emaar, Godrej..." className={inputCls} />
-          </div>
-        </section>
-
-        {/* Media — File Upload */}
-        <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
-          <h2 className="text-white font-semibold">Property Images</h2>
-          <ImageUploader
-            value={coverImageUrl}
-            onChange={(url) => {
-              setCoverImageUrl(url)
-              setValue('coverImage', url)
-            }}
-            label="Cover Image *"
-          />
-          {!coverImageUrl && errors.coverImage && (
-            <p className="text-red-400 text-xs">{errors.coverImage.message}</p>
-          )}
-        </section>
-
-        {/* Amenities */}
-        <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
-          <h2 className="text-white font-semibold">Amenities</h2>
-          <div className="flex flex-wrap gap-4">
-            {[
-              'Swimming Pool', 'Gym', '24/7 Security', 'Club House',
-              'Power Backup', 'Parking', 'Lift', 'Garden',
-              'Children Play Area', 'CCTV', 'Intercom', 'Rainwater Harvesting',
-            ].map((a) => (
-              <label key={a} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={amenities.includes(a)}
-                  onChange={(e) =>
-                    setAmenities(
-                      e.target.checked ? [...amenities, a] : amenities.filter((x) => x !== a)
-                    )
-                  }
-                  className="accent-gold-500 w-4 h-4"
-                />
-                <span className="text-white/70 text-sm">{a}</span>
-              </label>
-            ))}
-          </div>
-        </section>
-
-        {/* SEO & Flags */}
-        <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
-          <h2 className="text-white font-semibold">SEO & Flags</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Meta Title</label>
-              <input {...register('metaTitle')} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Meta Description</label>
-              <input {...register('metaDescription')} className={inputCls} />
-            </div>
-          </div>
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input {...register('isFeatured')} type="checkbox" className="w-4 h-4 accent-gold-500" />
-              <span className="text-white/70 text-sm">Featured Property</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input {...register('isLuxury')} type="checkbox" className="w-4 h-4 accent-gold-500" />
-              <span className="text-white/70 text-sm">Luxury Property</span>
-            </label>
-          </div>
-        </section>
-
-        {/* Submit */}
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex-1 py-3 border border-white/20 text-white/70 hover:text-white hover:border-white/40 rounded-lg text-sm transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 bg-gold-gradient text-white py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-gold-lg transition-all"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? 'Creating Property...' : 'Create Property'}
-          </button>
-        </div>
-      </form>
     </div>
   )
 }
