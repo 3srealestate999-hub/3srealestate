@@ -5,20 +5,33 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { propertySchema, PropertyInput } from '@/lib/validations'
-import { Loader2, ArrowLeft, Upload } from 'lucide-react'
+import { Loader2, ArrowLeft } from 'lucide-react'
+import { ImageUploader } from '@/components/admin/image-uploader'
 
 export default function NewPropertyPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [amenities, setAmenities] = useState<string[]>(['Swimming Pool', 'Gym', '24/7 Security', 'Parking', 'Power Backup'])
+  const [coverImageUrl, setCoverImageUrl] = useState('')
+  const [amenities, setAmenities] = useState<string[]>([
+    'Swimming Pool', 'Gym', '24/7 Security', 'Parking', 'Power Backup',
+  ])
 
-  const { register, handleSubmit, formState: { errors }, watch } = useForm<PropertyInput>({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<PropertyInput>({
     resolver: zodResolver(propertySchema),
-    defaultValues: { status: 'AVAILABLE', areaUnit: 'sqft', isFeatured: false, isLuxury: false },
+    defaultValues: {
+      status: 'AVAILABLE',
+      areaUnit: 'sqft',
+      isFeatured: false,
+      isLuxury: false,
+    },
   })
 
   const onSubmit = async (data: PropertyInput) => {
+    if (!coverImageUrl) {
+      setError('Please upload a cover image')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -27,6 +40,7 @@ export default function NewPropertyPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
+          coverImage: coverImageUrl,
           amenities: amenities.map((name) => ({ name })),
         }),
       })
@@ -56,9 +70,14 @@ export default function NewPropertyPage() {
         </div>
       </div>
 
-      {error && <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{error}</div>}
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
         {/* Basic Info */}
         <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
           <h2 className="text-white font-semibold">Basic Information</h2>
@@ -193,35 +212,52 @@ export default function NewPropertyPage() {
           </div>
         </section>
 
-        {/* Media */}
+        {/* Media — File Upload */}
         <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
-          <h2 className="text-white font-semibold">Media</h2>
-          <div>
-            <label className={labelCls}>Cover Image URL *</label>
-            <input {...register('coverImage')} placeholder="https://images.unsplash.com/..." className={inputCls} />
-            {errors.coverImage && <p className="text-red-400 text-xs mt-1">{errors.coverImage.message}</p>}
-          </div>
+          <h2 className="text-white font-semibold">Property Images</h2>
+          <ImageUploader
+            value={coverImageUrl}
+            onChange={(url) => {
+              setCoverImageUrl(url)
+              setValue('coverImage', url)
+            }}
+            label="Cover Image *"
+          />
+          {!coverImageUrl && errors.coverImage && (
+            <p className="text-red-400 text-xs">{errors.coverImage.message}</p>
+          )}
         </section>
 
         {/* Amenities */}
         <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
           <h2 className="text-white font-semibold">Amenities</h2>
-          <div className="flex flex-wrap gap-2">
-            {['Swimming Pool', 'Gym', '24/7 Security', 'Club House', 'Power Backup', 'Parking', 'Lift', 'Garden', 'Children Play Area', 'CCTV', 'Intercom', 'Rainwater Harvesting'].map((a) => (
+          <div className="flex flex-wrap gap-4">
+            {[
+              'Swimming Pool', 'Gym', '24/7 Security', 'Club House',
+              'Power Backup', 'Parking', 'Lift', 'Garden',
+              'Children Play Area', 'CCTV', 'Intercom', 'Rainwater Harvesting',
+            ].map((a) => (
               <label key={a} className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={amenities.includes(a)} onChange={(e) => {
-                  setAmenities(e.target.checked ? [...amenities, a] : amenities.filter((x) => x !== a))
-                }} className="accent-gold-500" />
+                <input
+                  type="checkbox"
+                  checked={amenities.includes(a)}
+                  onChange={(e) =>
+                    setAmenities(
+                      e.target.checked ? [...amenities, a] : amenities.filter((x) => x !== a)
+                    )
+                  }
+                  className="accent-gold-500 w-4 h-4"
+                />
                 <span className="text-white/70 text-sm">{a}</span>
               </label>
             ))}
           </div>
         </section>
 
-        {/* SEO + Flags */}
+        {/* SEO & Flags */}
         <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
           <h2 className="text-white font-semibold">SEO & Flags</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Meta Title</label>
               <input {...register('metaTitle')} className={inputCls} />
@@ -243,15 +279,22 @@ export default function NewPropertyPage() {
           </div>
         </section>
 
+        {/* Submit */}
         <div className="flex gap-4">
-          <button type="button" onClick={() => router.back()}
-            className="flex-1 py-3 border border-white/20 text-white/70 hover:text-white hover:border-white/40 rounded-lg text-sm transition-colors">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex-1 py-3 border border-white/20 text-white/70 hover:text-white hover:border-white/40 rounded-lg text-sm transition-colors"
+          >
             Cancel
           </button>
-          <button type="submit" disabled={loading}
-            className="flex-1 btn-luxury py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 bg-gold-gradient text-white py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-gold-lg transition-all"
+          >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? 'Creating...' : 'Create Property'}
+            {loading ? 'Creating Property...' : 'Create Property'}
           </button>
         </div>
       </form>
