@@ -17,7 +17,7 @@ async function main() {
       name: 'Admin User',
       password: hashedPassword,
       role: Role.SUPER_ADMIN,
-      phone: '+91-98765-43210',
+      phone: '+918872520002',
     },
   })
 
@@ -30,7 +30,7 @@ async function main() {
       name: 'Rahul Sharma',
       password: hashedPassword,
       role: Role.AGENT,
-      phone: '+91-98765-43211',
+      phone: '+918872520003',
     },
   })
 
@@ -224,7 +224,7 @@ async function main() {
   const leadsData = [
     {
       fullName: 'Arjun Kapoor',
-      phone: '+91-98001-11111',
+      phone: '+918872520002',
       email: 'arjun@email.com',
       budget: '1-2 Cr',
       preferredLocation: 'Mohali',
