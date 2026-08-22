@@ -27,7 +27,7 @@ async function main() {
     update: {},
     create: {
       email: 'agent@3srealestate.com',
-      name: 'Rahul Sharma',
+      name: 'Kulvir Kaur',
       password: hashedPassword,
       role: Role.AGENT,
       phone: '+918872520003',
@@ -337,11 +337,11 @@ async function main() {
   await prisma.siteSettings.createMany({
     skipDuplicates: true,
     data: [
-      { key: 'whatsapp_number', value: '+919876543210', description: 'WhatsApp contact number' },
-      { key: 'phone_primary', value: '+91-98765-43210', description: 'Primary phone' },
-      { key: 'phone_secondary', value: '+91-98765-43211', description: 'Secondary phone' },
+      { key: 'whatsapp_number', value: '+91-88725-20002', description: 'WhatsApp contact number' },
+      { key: 'phone_primary', value: '+91-88725-20002', description: 'Primary phone' },
+      { key: 'phone_secondary', value: '+91-88725-20002', description: 'Secondary phone' },
       { key: 'email_primary', value: 'info@3srealestate.com', description: 'Primary email' },
-      { key: 'address', value: 'SCO 123, Sector 17, Chandigarh 160017', description: 'Office address' },
+      { key: 'address', value: 'SCO 90-91, sector-86, Preet City, near-HDFC bank, First Floor Mohali Punjab - 140306', description: 'Office address' },
       { key: 'instagram_url', value: 'https://instagram.com/3srealestate', description: 'Instagram' },
       { key: 'youtube_url', value: 'https://youtube.com/@3srealestate', description: 'YouTube' },
       { key: 'facebook_url', value: 'https://facebook.com/3srealestate', description: 'Facebook' },
