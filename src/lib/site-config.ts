@@ -3,8 +3,8 @@ import { prisma } from './prisma'
 
 export const siteConfig = {
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '+918872110222',
-  phonePrimary: process.env.NEXT_PUBLIC_PHONE_PRIMARY || '+91-8872520002',
-  phoneSecondary: process.env.NEXT_PUBLIC_PHONE_SECONDARY || '+91-8872110222',
+  phonePrimary: process.env.NEXT_PUBLIC_PHONE_PRIMARY || '+918872520002',
+  phoneSecondary: process.env.NEXT_PUBLIC_PHONE_SECONDARY || '+918872110222',
   email: process.env.NEXT_PUBLIC_EMAIL || 'info@3srealestate.com',
 }
 
