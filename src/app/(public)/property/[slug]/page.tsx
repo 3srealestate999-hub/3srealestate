@@ -190,7 +190,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                   <Phone className="w-4 h-4" /> Call Agent
                 </a>
                 <a
-                  href={`https://wa.me/919876543210?text=${encodeURIComponent(`Hi! I'm interested in: ${property.title}\nLocation: ${property.city}\nPrice: ${price}`)}`}
+                  href={`https://wa.me/+918872520002?text=${encodeURIComponent(`Hi! I'm interested in: ${property.title}\nLocation: ${property.city}\nPrice: ${price}`)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 bg-green-500 text-white font-semibold py-3 rounded-lg hover:bg-green-600 transition-colors text-sm"
                 >
