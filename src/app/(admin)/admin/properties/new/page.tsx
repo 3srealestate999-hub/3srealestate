@@ -6,13 +6,14 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { propertySchema, PropertyInput } from '@/lib/validations'
 import { Loader2, ArrowLeft } from 'lucide-react'
-import { ImageUploader } from '@/components/admin/image-uploader'
+import { ImageUploader, MultiImageUploader } from '@/components/admin/image-uploader'
 
 export default function NewPropertyPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [coverImageUrl, setCoverImageUrl] = useState('')
+  const [additionalImages, setAdditionalImages] = useState<string[]>([])
   const [amenities, setAmenities] = useState<string[]>([
     'Swimming Pool', 'Gym', '24/7 Security', 'Parking', 'Power Backup',
   ])
@@ -42,6 +43,11 @@ export default function NewPropertyPage() {
           ...data,
           coverImage: coverImageUrl,
           amenities: amenities.map((name) => ({ name })),
+          images: additionalImages.map((url, i) => ({
+            url,
+            order: i,
+            isPrimary: false,
+          })),
         }),
       })
       const json = await res.json()
@@ -212,20 +218,32 @@ export default function NewPropertyPage() {
           </div>
         </section>
 
-        {/* Media — File Upload */}
-        <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-4">
+        {/* Media */}
+        <section className="bg-charcoal-900 border border-white/10 rounded-xl p-6 space-y-6">
           <h2 className="text-white font-semibold">Property Images</h2>
+
+          {/* Cover image */}
           <ImageUploader
             value={coverImageUrl}
             onChange={(url) => {
               setCoverImageUrl(url)
               setValue('coverImage', url)
             }}
-            label="Cover Image *"
+            label="Cover Image * (main display image)"
           />
           {!coverImageUrl && errors.coverImage && (
             <p className="text-red-400 text-xs">{errors.coverImage.message}</p>
           )}
+
+          {/* Additional images */}
+          <div className="pt-4 border-t border-white/10">
+            <MultiImageUploader
+              values={additionalImages}
+              onChange={setAdditionalImages}
+              max={10}
+              label="Additional Images (up to 10)"
+            />
+          </div>
         </section>
 
         {/* Amenities */}
@@ -242,9 +260,7 @@ export default function NewPropertyPage() {
                   type="checkbox"
                   checked={amenities.includes(a)}
                   onChange={(e) =>
-                    setAmenities(
-                      e.target.checked ? [...amenities, a] : amenities.filter((x) => x !== a)
-                    )
+                    setAmenities(e.target.checked ? [...amenities, a] : amenities.filter((x) => x !== a))
                   }
                   className="accent-gold-500 w-4 h-4"
                 />
