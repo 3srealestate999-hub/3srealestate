@@ -1,5 +1,6 @@
 // src/lib/site-config.ts
 import { prisma } from './prisma'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export const siteConfig = {
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '+918872110222',
@@ -21,6 +22,7 @@ export function getPhoneLink(): string {
 }
 
 export async function getLiveConfig() {
+  noStore()
   try {
     const settings = await prisma.siteSettings.findMany()
     const map = Object.fromEntries(settings.map((s) => [s.key, s.value]))
