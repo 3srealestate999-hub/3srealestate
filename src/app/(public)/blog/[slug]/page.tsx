@@ -93,7 +93,7 @@ export default async function BlogDetailPage({ params }: Props) {
             <div className="bg-charcoal-950 rounded-xl p-6 text-white">
               <h3 className="font-heading font-bold text-lg mb-2">Looking for a Property?</h3>
               <p className="text-white/60 text-sm mb-4">Get a free consultation from our expert team today.</p>
-              <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer"
+              <a href="https://wa.me/+918872520002" target="_blank" rel="noopener noreferrer"
                 className="block w-full text-center btn-luxury py-3 rounded-lg text-sm">
                 WhatsApp Us Now
               </a>

@@ -8,9 +8,9 @@ interface Props {
 }
 
 const settingFields = [
-  { key: 'whatsapp_number', label: 'WhatsApp Number', placeholder: '+919876543210', group: 'Contact' },
-  { key: 'phone_primary', label: 'Primary Phone', placeholder: '+91-98765-43210', group: 'Contact' },
-  { key: 'phone_secondary', label: 'Secondary Phone', placeholder: '+91-98765-43211', group: 'Contact' },
+  { key: 'whatsapp_number', label: 'WhatsApp Number', placeholder: '+918872520002', group: 'Contact' },
+  { key: 'phone_primary', label: 'Primary Phone', placeholder: '+91-88725-20002', group: 'Contact' },
+  { key: 'phone_secondary', label: 'Secondary Phone', placeholder: '+91-88725-20002', group: 'Contact' },
   { key: 'email_primary', label: 'Primary Email', placeholder: 'info@3srealestate.com', group: 'Contact' },
   { key: 'address', label: 'Office Address', placeholder: 'SCO 123, Sector 17-C, Chandigarh', group: 'Contact' },
   { key: 'instagram_url', label: 'Instagram URL', placeholder: 'https://instagram.com/...', group: 'Social' },
