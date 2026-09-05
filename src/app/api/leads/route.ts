@@ -1,25 +1,21 @@
-// src/app/api/leads/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { leadCaptureSchema } from '@/lib/validations'
 import { calculateLeadScore } from '@/lib/lead-scoring'
+import { sendWhatsAppNotification, formatLeadMessage } from '@/lib/notify'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-
     const parsed = leadCaptureSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid data', details: parsed.error.flatten() },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
     }
 
     const data = parsed.data
     const { score } = calculateLeadScore(data)
 
-    // Check for duplicate phone in last 24 hours
+    // Check duplicate
     const existing = await prisma.lead.findFirst({
       where: {
         phone: data.phone,
@@ -28,7 +24,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (existing) {
-      return NextResponse.json({ message: 'Lead already exists', leadId: existing.id }, { status: 200 })
+      return NextResponse.json({ message: 'Lead already exists', leadId: existing.id })
     }
 
     const lead = await prisma.lead.create({
@@ -42,9 +38,24 @@ export async function POST(req: NextRequest) {
         purpose: data.purpose || null,
         timeline: data.timeline || null,
         score,
-        source: req.headers.get('referer') || 'website_popup',
+        source: 'website_popup',
       },
     })
+
+    // Send WhatsApp notification to owner
+    const message = formatLeadMessage({
+      fullName: data.fullName,
+      phone: data.phone,
+      email: data.email,
+      budget: data.budget,
+      preferredLocation: data.preferredLocation,
+      propertyType: data.propertyType,
+      purpose: data.purpose,
+    })
+
+    // Add score to message
+    const fullMessage = message + `\n🔥 *Lead Score:* ${score}`
+    sendWhatsAppNotification(fullMessage) // fire and forget
 
     return NextResponse.json({ success: true, leadId: lead.id, score }, { status: 201 })
   } catch (error) {
@@ -54,7 +65,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Admin only - would add auth check in middleware
   const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '20')
