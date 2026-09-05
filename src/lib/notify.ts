@@ -19,7 +19,7 @@ async function sendEmail(subject: string, html: string): Promise<boolean> {
       },
       body: JSON.stringify({
         from: `3S Real Estate <onboarding@resend.dev>`,
-        to: `3sestate@gmail.com`,
+        to: [NOTIFICATION_EMAIL],
         subject,
         html,
       }),
