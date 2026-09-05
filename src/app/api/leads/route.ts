@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { leadCaptureSchema } from '@/lib/validations'
 import { calculateLeadScore } from '@/lib/lead-scoring'
-import { sendWhatsAppNotification, formatLeadMessage } from '@/lib/notify'
+import { sendLeadNotification } from '@/lib/notify'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
     const data = parsed.data
     const { score } = calculateLeadScore(data)
 
-    // Check duplicate
     const existing = await prisma.lead.findFirst({
       where: {
         phone: data.phone,
@@ -42,8 +41,8 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Send WhatsApp notification to owner
-    const message = formatLeadMessage({
+    // Send email notification
+    sendLeadNotification({
       fullName: data.fullName,
       phone: data.phone,
       email: data.email,
@@ -51,11 +50,8 @@ export async function POST(req: NextRequest) {
       preferredLocation: data.preferredLocation,
       propertyType: data.propertyType,
       purpose: data.purpose,
+      score,
     })
-
-    // Add score to message
-    const fullMessage = message + `\n🔥 *Lead Score:* ${score}`
-    sendWhatsAppNotification(fullMessage) // fire and forget
 
     return NextResponse.json({ success: true, leadId: lead.id, score }, { status: 201 })
   } catch (error) {
@@ -70,17 +66,14 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '20')
   const status = searchParams.get('status')
   const score = searchParams.get('score')
-
   const where: any = {}
   if (status) where.status = status
   if (score) where.score = score
 
   const [leads, total] = await Promise.all([
     prisma.lead.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
+      where, orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit, take: limit,
       include: { assignedTo: { select: { name: true, email: true } } },
     }),
     prisma.lead.count({ where }),
