@@ -1,7 +1,7 @@
 // src/lib/notify.ts
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || '3srealestate999@gmail.com'
+const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || '3sestate@gmail.com'
 const FROM_EMAIL = 'onboarding@resend.dev'
 
 async function sendEmail(subject: string, html: string): Promise<boolean> {
