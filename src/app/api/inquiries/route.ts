@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { inquirySchema } from '@/lib/validations'
-import { sendWhatsAppNotification, formatInquiryMessage } from '@/lib/notify'
+import { sendInquiryNotification } from '@/lib/notify'
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,24 +19,20 @@ export async function POST(req: NextRequest) {
         message: parsed.data.message || null,
         propertyId: parsed.data.propertyId || null,
       },
-      include: {
-        property: { select: { title: true } },
-      },
+      include: { property: { select: { title: true } } },
     })
 
-    // Send WhatsApp notification
-    const message = formatInquiryMessage({
+    // Send email notification
+    sendInquiryNotification({
       name: parsed.data.name,
       phone: parsed.data.phone,
       email: parsed.data.email,
       message: parsed.data.message,
       propertyTitle: inquiry.property?.title,
     })
-    sendWhatsAppNotification(message) // fire and forget
 
     return NextResponse.json({ success: true, inquiryId: inquiry.id }, { status: 201 })
   } catch (error) {
-    console.error('Inquiry error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
