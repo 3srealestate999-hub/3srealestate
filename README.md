@@ -144,17 +144,6 @@ Visit: [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🔐 Default Credentials
-
-| Role | Email | Password |
-|---|---|---|
-| Super Admin | admin@3srealestate.com | Admin@123 |
-| Agent | agent@3srealestate.com | Admin@123 |
-
-Admin Panel: [http://localhost:3000/admin](http://localhost:3000/admin)
-
----
-
 ## 🌟 Key Features
 
 ### Lead Generation
